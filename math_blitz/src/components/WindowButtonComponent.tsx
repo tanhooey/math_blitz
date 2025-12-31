@@ -16,7 +16,6 @@ export default function WindowButtonComponent({
     let navigate = useNavigate();
     const handleClick = () => {
         if (targetState && targetState === "create_game") {
-            console.log('here')
             navigate("/test")
         }
         else if (set_prelobby_state && targetState) 
