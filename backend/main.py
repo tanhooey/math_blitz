@@ -1,3 +1,5 @@
+import uvicorn
+import os
 from typing import Union, Annotated
 from fastapi import FastAPI, WebSocket, Response, Cookie, HTTPException, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
@@ -6,6 +8,15 @@ from util import get_random_string
 from util import CreateGame, ResponseEnvelope, ConnectionManager
 from typing import Dict
 from fastapi.middleware.cors import CORSMiddleware
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Get the base directory of your project
+BASE_DIR = Path(__file__).resolve().parent
+
+# Load the .env file from the root
+load_dotenv(BASE_DIR.parent / ".env")
+
 
 origins = [
     "http://localhost:5173",  # Removed trailing slash
@@ -39,26 +50,27 @@ def start_session(response: Response, session_id: Annotated[str | None, Cookie()
         while session_id in sessions:
             session_id = get_random_string(16)
     response.set_cookie(
-        key="session_id", 
+        key="session_id",
         value=session_id,
         # SECURITY CRITICAL SETTINGS:
         httponly=True,  # Prevents JavaScript from reading this (stops XSS)
-        secure=False,    # Only sends cookie over HTTPS
-        samesite="none", # Protects against CSRF attacks
+        secure=True,    # Only sends cookie over HTTPS
+        samesite="none",  # Protects against CSRF attacks
         max_age=3600    # Cookie expires in 1 hour (persistence)
     )
 
-        # Add the session to the tracked sessions
+    # Add the session to the tracked sessions
     session = Session(session_id)
     sessions[session_id] = session
     return {"msg": "User sends nothing, but gets a cookie!"}
-    
+
+
 @app.post("/api/create_game")
 def create_game(game: CreateGame, session_id: Annotated[str | None, Cookie()] = None) -> ResponseEnvelope[None]:
     # Update session object
     if not session_id or session_id not in sessions:
         raise HTTPException(status_code=403, detail="Session does not exist.")
-    
+
     # Generate unique id for lobby
     host_name = game.player_name
     uuid = get_random_string()
@@ -74,8 +86,9 @@ def create_game(game: CreateGame, session_id: Annotated[str | None, Cookie()] = 
     current_session.set_lobby(uuid)
     current_session.set_name(host_name)
     response = f"Game {uuid} successfully created."
-    
+
     return ResponseEnvelope(message=response)
+
 
 @app.post("/api/join_game")
 def join_game(game: CreateGame, session_id: Annotated[str | None, Cookie()] = None) -> ResponseEnvelope[None]:
@@ -97,10 +110,12 @@ def join_game(game: CreateGame, session_id: Annotated[str | None, Cookie()] = No
 
     return ResponseEnvelope(status="true", message="Successfully joined " + game_id + " as " + name + ".")
 
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, session_id: Annotated[str | None, Cookie()] = None):
     if not session_id:
-        raise HTTPException(status_code=403, detail="Session does not exist or not found.")
+        raise HTTPException(
+            status_code=403, detail="Session does not exist or not found.")
     await cm.connect(session_id, websocket)
     try:
         while True:
@@ -124,3 +139,23 @@ async def websocket_endpoint(websocket: WebSocket, session_id: Annotated[str | N
     except WebSocketDisconnect:
         cm.disconnect(session_id, websocket)
 
+if __name__ == "__main__":
+    # Get the relative path from .env (e.g., "certs/localhost-key.pem")
+    key_rel_path = os.getenv("SSL_KEY_FILE")
+    cert_rel_path = os.getenv("SSL_CERT_FILE")
+
+    # Combine with Base Dir to get an Absolute Path
+    # This is safer than simple relative strings because it works
+    # no matter where you run the command from.
+    ssl_key_abs = BASE_DIR.parent / key_rel_path
+    ssl_cert_abs = BASE_DIR.parent / cert_rel_path
+
+    print(f"🔒 Loading SSL Key from: {ssl_key_abs}")
+
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8000,
+        ssl_keyfile=str(ssl_key_abs),   # Convert Path object to string
+        ssl_certfile=str(ssl_cert_abs)
+    )

@@ -1,1 +1,2 @@
 -r requirements-base.txt
+uvloop==0.22.1

@@ -24,7 +24,7 @@ export default function PreLobbyComponent() {
                 const playerName = formData.get("Name") as string;
 
                 // Make API call
-                const response = await fetch(`http://0.0.0.0:8000/api/join_game`, {
+                const response = await fetch(`http://localhost:8000/api/join_game`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',

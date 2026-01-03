@@ -10,6 +10,9 @@ venv/
 env/
 ENV/
 
+# --- Certs ---
+certs/
+
 # --- Environment Variables (CRITICAL) ---
 # Never commit your API keys or database passwords
 .env
