@@ -38,10 +38,6 @@ lobbies: Dict[str, Lobby] = {}
 sessions: Dict[str, Session] = {}
 
 
-# @app.get("/")
-# def get():
-#     return HTMLResponse(html)
-
 @app.get("/api/start_session")
 def start_session(response: Response, session_id: Annotated[str | None, Cookie()] = None):
     # Generate a session

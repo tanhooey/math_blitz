@@ -24,7 +24,7 @@ export default function PreLobbyComponent() {
                 const playerName = formData.get("Name") as string;
 
                 // Make API call
-                const response = await fetch(`http://localhost:8000/api/join_game`, {
+                const response = await fetch(`https://localhost:8000/api/join_game`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
@@ -57,7 +57,42 @@ export default function PreLobbyComponent() {
                 </form>
             </>
         case "create_game":
-            return <></>
+            const handleCreateGame = async (e: FormEvent<HTMLFormElement>) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const playerName = formData.get("Name") as string;
+
+                // Make API call
+                const response = await fetch(`https://localhost:8000/api/create_game`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        player_name: playerName, // Get from somewhere
+                    })
+                });
+
+                if (response.ok) {
+                    console.log(response)
+                }
+            }; 
+            return <>
+                <form onSubmit={handleCreateGame}>
+                    <TextInput fieldLabel={"Name"} />
+                    <Button
+                        name={"Back"}
+                        onClick={() => {
+                            navigate("/")
+                            set_prelobby_state("default")
+                        }
+                        } />
+                    <Button
+                        name={"Create"}
+                        type={"submit"}
+                    // onClick={() => set_prelobby_state("create_game")}
+                    />
+                </form>
+            </>
         default:
             return <></>
     }
